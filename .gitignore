@@ -19,5 +19,5 @@ venv/
 *.flac
 *.ogg
 
-# Local transcript output (uncomment if you don't want transcripts committed)
-# transcripts/
+# Local transcript output — may contain personal/sensitive content, keep out of git
+transcripts/

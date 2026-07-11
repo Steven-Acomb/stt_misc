@@ -120,8 +120,9 @@ def _add_speaker_args(p: argparse.ArgumentParser) -> None:
                    help="Expected number of speakers (hint for diarization). Default: 2.")
     p.add_argument("--auto-speakers", action="store_true",
                    help="Let the diarizer auto-detect the number of speakers.")
-    p.add_argument("--model", default="universal",
-                   help="AssemblyAI speech model (default: universal).")
+    p.add_argument("--model", default="universal-3-5-pro,universal-2",
+                   help="AssemblyAI speech model preference list, comma-separated, "
+                        "tried in order (default: universal-3-5-pro,universal-2).")
 
 
 def build_parser() -> argparse.ArgumentParser:

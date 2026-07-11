@@ -15,26 +15,25 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _resolve_speech_model(model: str):
-    """Map a model name string to an aai.SpeechModel, tolerant of SDK versions."""
-    name = model.strip().lower()
-    # Try the exact attribute first, then a couple of known fallbacks.
-    for candidate in (name, "universal", "best"):
-        member = getattr(aai.SpeechModel, candidate, None)
-        if member is not None:
-            return member
-    return None  # let the SDK use its default
+# AssemblyAI's recommended model preference list (tried in order). The singular
+# `speech_model` parameter is deprecated; `speech_models` takes a fallback list.
+DEFAULT_MODELS = "universal-3-5-pro,universal-2"
+
+
+def _parse_models(model: str) -> list[str]:
+    return [m.strip() for m in model.split(",") if m.strip()]
 
 
 def transcribe_file(
     audio_path: str | Path,
     *,
-    model: str = "universal",
+    model: str = DEFAULT_MODELS,
     speakers_expected: int | None = 2,
     language_code: str = "en",
 ) -> Transcript:
     """Transcribe one audio file with speaker diarization.
 
+    model: comma-separated AssemblyAI speech model preference list (tried in order).
     speakers_expected: hint for the diarizer. Pass None to let it auto-detect.
     """
     aai.settings.api_key = get_api_key()
@@ -45,10 +44,8 @@ def transcribe_file(
     config_kwargs: dict = {
         "speaker_labels": True,
         "language_code": language_code,
+        "speech_models": _parse_models(model),
     }
-    speech_model = _resolve_speech_model(model)
-    if speech_model is not None:
-        config_kwargs["speech_model"] = speech_model
     if speakers_expected:
         config_kwargs["speakers_expected"] = speakers_expected
 

@@ -86,10 +86,13 @@ function renderLegend() {
     input.value = speakerName(key);
     input.title = `Rename ${key} everywhere`;
     input.addEventListener("input", () => {
+      markDirty();
       doc.speaker_names[key] = input.value;
       refreshSpeakerLabels();
-      markDirty();
     });
+    // Flush the save the moment focus leaves the field, so a quick rename saves
+    // immediately instead of waiting on the autosave debounce.
+    input.addEventListener("blur", flushSave);
 
     item.append(swatch, input);
     els.legend.append(item);
@@ -163,6 +166,7 @@ function renderSegments() {
       markDirty();
     });
     textarea.addEventListener("focus", () => seekOnFocusHint(seg));
+    textarea.addEventListener("blur", flushSave);
 
     node.querySelector(".split-btn").addEventListener("click", () => onSplit(seg.id));
     const mergeBtn = node.querySelector(".merge-btn");
@@ -377,6 +381,12 @@ function markDirty() {
   setStatus("unsaved changes", "dirty");
   clearTimeout(saveTimer);
   saveTimer = setTimeout(save, 2000); // debounced autosave
+}
+
+// Save right now if there's anything pending (used on blur, so leaving a field
+// commits immediately rather than waiting on the debounce).
+function flushSave() {
+  if (dirty) save();
 }
 
 async function save() {
