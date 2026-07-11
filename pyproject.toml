@@ -1,0 +1,25 @@
+[project]
+name = "stt-misc"
+version = "0.1.0"
+description = "Speech-to-text with speaker diarization (AssemblyAI) plus a local web editor for correcting transcripts while listening."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "assemblyai>=0.35",
+    "flask>=3.0",
+    "mutagen>=1.47",
+    "python-dotenv>=1.0",
+]
+
+[project.scripts]
+stt = "stt.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+stt = ["review/static/*"]

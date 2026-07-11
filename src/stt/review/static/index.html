@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Transcript Editor</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header id="topbar">
+    <div class="topbar-row">
+      <div class="file-info">
+        <span id="filename">…</span>
+        <span id="audio-warning" class="warning" hidden>⚠ audio not found — playback disabled</span>
+      </div>
+      <div class="save-area">
+        <span id="status" class="status">loading…</span>
+        <button id="save-btn" type="button">Save</button>
+      </div>
+    </div>
+
+    <div class="topbar-row player-row">
+      <audio id="player" preload="metadata"></audio>
+      <div class="transport">
+        <button id="seek-back" type="button" title="Back 3s (Alt+J)">« 3s</button>
+        <button id="play-pause" type="button" title="Play / Pause (Space, Alt+K)">Play</button>
+        <button id="seek-fwd" type="button" title="Forward 3s (Alt+L)">3s »</button>
+        <span id="time-readout" class="time-readout">0:00 / 0:00</span>
+        <input id="scrubber" class="scrubber" type="range" min="0" max="1000" value="0" />
+        <label class="speed">
+          Speed
+          <select id="speed">
+            <option value="0.5">0.5×</option>
+            <option value="0.75">0.75×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="topbar-row legend-row">
+      <span class="legend-label">Speakers:</span>
+      <div id="legend"></div>
+      <details class="help">
+        <summary>Shortcuts</summary>
+        <ul>
+          <li><kbd>Space</kbd> play/pause (when not typing)</li>
+          <li><kbd>Alt</kbd>+<kbd>K</kbd> play/pause (anywhere)</li>
+          <li><kbd>Alt</kbd>+<kbd>J</kbd> / <kbd>Alt</kbd>+<kbd>L</kbd> back / forward 3s</li>
+          <li><kbd>Ctrl</kbd>+<kbd>S</kbd> save</li>
+          <li>Click a timestamp to jump the audio there</li>
+        </ul>
+      </details>
+    </div>
+  </header>
+
+  <main id="transcript" aria-live="polite"></main>
+
+  <template id="segment-template">
+    <div class="segment">
+      <div class="seg-meta">
+        <button class="timestamp" type="button" title="Jump to this point"></button>
+        <select class="speaker-select" title="Reassign speaker for this turn"></select>
+      </div>
+      <textarea class="seg-text" rows="1" spellcheck="true"></textarea>
+      <div class="seg-actions">
+        <button class="split-btn" type="button" title="Split this turn at the playhead">Split</button>
+        <button class="merge-btn" type="button" title="Merge into the next turn">Merge ↓</button>
+      </div>
+    </div>
+  </template>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

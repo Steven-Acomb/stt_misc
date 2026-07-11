@@ -1,0 +1,23 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Audio + transcript working files (don't commit recordings)
+*.m4a
+*.mp3
+*.wav
+*.aac
+*.flac
+*.ogg
+
+# Local transcript output (uncomment if you don't want transcripts committed)
+# transcripts/
