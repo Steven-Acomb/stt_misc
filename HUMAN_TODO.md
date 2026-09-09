@@ -63,7 +63,41 @@ The editor plays audio in your browser. **Use Chrome or Edge** — both play `.m
 If audio ever won't load for a specific file, converting it to mp3 first is the
 fallback (I can add an auto-convert step later if it comes up).
 
+## 6. Make the phone web app survive reboots (admin PowerShell, one time)
+
+**Why this is yours:** the web app that serves your phone
+(`https://stephen-desktop.tail796bf2.ts.net:11443/`) is kept alive by a Windows
+Scheduled Task. Registering the *full* version — the one that comes back after a
+reboot even when you're logged out (LogonType S4U) — requires an **elevated**
+PowerShell; an unelevated shell fails with "Access is denied". Registering a task
+is something only you can authorize, so it can't be automated for you.
+
+Until you do this, the app only stays up while something is actively running it
+(a `python -m stt.webapp` you started, or a Claude session) — it will **not**
+restart itself or come back after a reboot. This step makes it permanent.
+(Registering the task needs elevation on this machine even for the logon-only
+`-Interactive` variant, so there's no non-admin shortcut — the admin shell below
+is the path.)
+
+**Steps:**
+1. Press **Win+X**, choose **Terminal (Admin)** (accept the UAC prompt).
+2. Run:
+   ```powershell
+   cd C:\Users\Stephen\Documents\GitHub\stt_misc
+   powershell -ExecutionPolicy Bypass -File scripts\windows\install-webapp-task.ps1
+   Start-ScheduledTask -TaskName SttWebApp
+   ```
+3. Confirm it's running:
+   ```powershell
+   Get-ScheduledTask SttWebApp | Get-ScheduledTaskInfo   # LastTaskResult 0 / State Running
+   curl http://localhost:8792/api/health                  # {"ok":true}
+   ```
+
+That's it — the app now starts on every boot/logon and restarts itself if it
+crashes. To undo: `... install-webapp-task.ps1 -Uninstall`. Full details in
+`docs/DEPLOY_TAILNET.md`.
+
 ## That's everything
 
-Once the key is set and `pip install -e .` has run, you never need to touch this
-file again. Day-to-day usage is in **README.md**.
+Day-to-day usage is in **README.md**; tailnet/deploy details in
+`docs/DEPLOY_TAILNET.md`.

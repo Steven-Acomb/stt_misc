@@ -21,3 +21,6 @@ venv/
 
 # Local transcript output — may contain personal/sensitive content, keep out of git
 transcripts/
+
+# Web app runtime log
+logs/

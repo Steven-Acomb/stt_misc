@@ -1,4 +1,6 @@
 assemblyai>=0.35
 flask>=3.0
+fastapi>=0.110
+uvicorn>=0.29
 mutagen>=1.47
 python-dotenv>=1.0

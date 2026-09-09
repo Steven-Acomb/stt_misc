@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14171c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="STT" />
+  <title>STT</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" href="/icon-192.png" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="offline" class="offline-banner" hidden>Offline — reconnecting…</div>
+
+  <header id="topbar">
+    <button id="back-btn" class="icon-btn" hidden aria-label="Back">‹</button>
+    <div id="crumb" class="crumb">STT</div>
+    <div id="status" class="status"></div>
+  </header>
+
+  <main id="view"></main>
+
+  <nav id="tabbar">
+    <a href="#/transcripts" data-route="transcripts" class="tab">📄<span>Transcripts</span></a>
+    <a href="#/new" data-route="new" class="tab">＋<span>New</span></a>
+    <a href="#/jobs" data-route="jobs" class="tab">⏳<span>Jobs</span></a>
+  </nav>
+
+  <template id="segment-template">
+    <div class="segment">
+      <div class="seg-head">
+        <button class="timestamp" type="button" title="Jump here"></button>
+        <select class="speaker-select" title="Reassign speaker"></select>
+      </div>
+      <textarea class="seg-text" rows="1" spellcheck="true"></textarea>
+      <div class="seg-actions">
+        <button class="split-btn" type="button">Split</button>
+        <button class="merge-btn" type="button">Merge ↓</button>
+      </div>
+    </div>
+  </template>
+
+  <script src="/app.js"></script>
+</body>
+</html>
