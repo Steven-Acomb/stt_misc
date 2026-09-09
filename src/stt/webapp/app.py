@@ -14,7 +14,9 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+import re
+
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -179,6 +181,32 @@ def create_app() -> FastAPI:
         transcript.save(p)
         p.with_suffix(".md").write_text(to_screenplay(transcript), encoding="utf-8")
         return {"ok": True, "modified_at": transcript.modified_at}
+
+    # ---- upload from the phone ---------------------------------------
+    @app.post("/api/upload")
+    async def upload(file: UploadFile = File(...)):
+        raw = os.path.basename(file.filename or "upload")
+        ext = Path(raw).suffix.lower()
+        if ext not in AUDIO_EXTENSIONS:
+            raise HTTPException(400, f"not an audio file: {raw}")
+        # Keep the name readable but strip anything path-ish or unsafe.
+        stem = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", Path(raw).stem).strip() or "upload"
+        config.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        dest = config.UPLOAD_DIR / f"{stem}{ext}"
+        n = 2
+        while dest.exists():
+            dest = config.UPLOAD_DIR / f"{stem} ({n}){ext}"
+            n += 1
+        size = 0
+        with open(dest, "wb") as out:
+            while True:
+                chunk = await file.read(1024 * 1024)
+                if not chunk:
+                    break
+                out.write(chunk)
+                size += len(chunk)
+        log(f"upload saved: {dest.name} ({size/1_000_000:.1f} MB)")
+        return {"path": str(dest), "name": dest.name, "bytes": size}
 
     # ---- transcription jobs ------------------------------------------
     class JobRequest(BaseModel):

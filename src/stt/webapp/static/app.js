@@ -101,45 +101,100 @@ let browsePath = null;
 
 async function viewNew() {
   setCrumb("New transcription");
-  await renderBrowse();
+  // Upload-from-device button (iOS surfaces the Files app picker here).
+  const upBtn = el("button", "btn block", "⬆ Upload audio from this device");
+  const fi = document.createElement("input");
+  fi.type = "file";
+  fi.accept = "audio/*,.m4a,.m4b,.aac,.mp3,.wav,.flac,.ogg";
+  fi.hidden = true;
+  fi.onchange = () => { const f = fi.files && fi.files[0]; fi.value = ""; if (f) uploadFile(f); };
+  upBtn.onclick = () => fi.click();
+  view.append(upBtn, fi);
+  view.append(el("div", "section-title", "or browse this desktop"));
+  const browse = el("div"); browse.id = "browse";
+  view.append(browse);
+  await renderBrowse(browse);
 }
 
-async function renderBrowse() {
-  view.innerHTML = "";
+async function renderBrowse(container) {
+  container = container || document.getElementById("browse");
+  if (!container) return;
+  container.innerHTML = "";
   let listing;
   try {
     const url = browsePath == null ? "/api/fs" : "/api/fs?path=" + encodeURIComponent(browsePath);
     listing = await apiGet(url);
   } catch (e) {
-    view.append(el("p", "empty", "Couldn't open folder: " + e.message));
+    container.append(el("p", "empty", "Couldn't open folder: " + e.message));
     browsePath = null;
-    view.append(makeBtn("Back to drives", "ghost block", () => { browsePath = null; renderBrowse(); }));
+    container.append(makeBtn("Back to drives", "ghost block", () => { browsePath = null; renderBrowse(container); }));
     return;
   }
   browsePath = listing.path;
-  view.append(el("div", "pathbar", listing.path || "This PC — pick a drive"));
+  container.append(el("div", "pathbar", listing.path || "This PC — pick a drive"));
 
   if (listing.parent != null || listing.path != null) {
     const up = el("button", "row dir");
     up.append(el("span", "glyph", "⬑"), el("span", "name", listing.parent != null ? "Up a level" : "Drives"));
-    up.onclick = () => { browsePath = listing.parent; renderBrowse(); };
-    view.append(up);
+    up.onclick = () => { browsePath = listing.parent; renderBrowse(container); };
+    container.append(up);
   }
   for (const d of listing.dirs) {
     const row = el("button", "row dir");
     row.append(el("span", "glyph", "📁"), el("span", "name", d), el("span", "go", "›"));
-    row.onclick = () => { browsePath = joinPath(listing.path, d); renderBrowse(); };
-    view.append(row);
+    row.onclick = () => { browsePath = joinPath(listing.path, d); renderBrowse(container); };
+    container.append(row);
   }
   const audio = (listing.files || []).filter((f) => f.kind === "audio");
   for (const f of audio) {
     const row = el("button", "row file");
     row.append(el("span", "glyph", "🎧"), el("span", "name", f.name), el("span", "go", "＋"));
     row.onclick = () => openSpeakerSheet(joinPath(listing.path, f.name), f.name);
-    view.append(row);
+    container.append(row);
   }
   if (!listing.dirs.length && !audio.length)
-    view.append(el("p", "empty", "No sub-folders or audio files here."));
+    container.append(el("p", "empty", "No sub-folders or audio files here."));
+}
+
+// Upload a picked file with a progress bar, then hand off to the speaker sheet.
+function uploadFile(file) {
+  const backdrop = el("div", "sheet-backdrop");
+  const sheet = el("div", "sheet");
+  sheet.append(el("h3", null, "Uploading"));
+  sheet.append(el("div", "sub", file.name));
+  const barWrap = el("div", "upbar");
+  const bar = el("div", "upbar-fill");
+  barWrap.append(bar);
+  const pct = el("div", "sub", "0%");
+  sheet.append(barWrap, pct);
+  const cancel = makeBtn("Cancel", "ghost block", () => { xhr.abort(); backdrop.remove(); });
+  sheet.append(cancel);
+  backdrop.append(sheet);
+  document.body.append(backdrop);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/api/upload");
+  xhr.upload.onprogress = (e) => {
+    if (!e.lengthComputable) return;
+    const p = Math.round((e.loaded / e.total) * 100);
+    bar.style.width = p + "%";
+    pct.textContent = p + "%" + (p >= 100 ? " — saving…" : "");
+  };
+  xhr.onload = () => {
+    backdrop.remove();
+    if (xhr.status >= 200 && xhr.status < 300) {
+      const r = JSON.parse(xhr.responseText);
+      openSpeakerSheet(r.path, r.name);
+    } else {
+      let msg = xhr.statusText;
+      try { msg = JSON.parse(xhr.responseText).detail || msg; } catch (e) {}
+      alert("Upload failed: " + msg);
+    }
+  };
+  xhr.onerror = () => { backdrop.remove(); alert("Upload failed (network)."); };
+  const fd = new FormData();
+  fd.append("file", file, file.name);
+  xhr.send(fd);
 }
 
 function joinPath(base, name) {

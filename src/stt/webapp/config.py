@@ -12,6 +12,9 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 # "existing transcripts" list is read from). Mirrors the CLI default.
 TRANSCRIPTS_DIR = Path(os.environ.get("STT_TRANSCRIPTS_DIR", str(REPO_ROOT / "transcripts")))
 
+# Where audio uploaded from the phone lands.
+UPLOAD_DIR = Path(os.environ.get("STT_UPLOAD_DIR", str(REPO_ROOT / "uploads")))
+
 # The app writes its own log, opened per-write (never a shell redirect) — this
 # is what lets the scheduled task restart cleanly. See docs/DEPLOY_TAILNET.md.
 LOG_FILE = Path(os.environ.get("STT_WEB_LOG", str(REPO_ROOT / "logs" / "webapp.log")))

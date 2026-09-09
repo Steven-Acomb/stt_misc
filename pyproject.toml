@@ -9,6 +9,7 @@ dependencies = [
     "flask>=3.0",
     "fastapi>=0.110",
     "uvicorn>=0.29",
+    "python-multipart>=0.0.9",
     "mutagen>=1.47",
     "python-dotenv>=1.0",
 ]

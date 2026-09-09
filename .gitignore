@@ -24,3 +24,6 @@ transcripts/
 
 # Web app runtime log
 logs/
+
+# Audio uploaded from the phone
+uploads/

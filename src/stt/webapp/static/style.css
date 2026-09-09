@@ -120,6 +120,9 @@ button { cursor: pointer; }
 .stepper .val { font-size: 1.6em; font-weight: 700; min-width: 2ch; text-align: center; }
 .stepper label { color: var(--muted); font-size: .85em; }
 
+.upbar { height: 12px; background: var(--panel-2); border-radius: 6px; overflow: hidden; margin: 10px 0 6px; }
+.upbar-fill { height: 100%; width: 0; background: var(--accent); transition: width .12s; }
+
 .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75em; font-weight: 600; }
 .badge.queued { background: var(--panel-2); color: var(--muted); }
 .badge.running { background: var(--accent-soft); color: var(--accent); }
