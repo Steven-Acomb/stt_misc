@@ -81,17 +81,21 @@ is the path.)
 
 **Steps:**
 1. Press **Win+X**, choose **Terminal (Admin)** (accept the UAC prompt).
-2. Run:
-   ```powershell
+2. Run these (they work whether the admin terminal is PowerShell **or** Command
+   Prompt — `schtasks` is native to both, unlike the `*-ScheduledTask` cmdlets):
+   ```
    cd C:\Users\Stephen\Documents\GitHub\stt_misc
    powershell -ExecutionPolicy Bypass -File scripts\windows\install-webapp-task.ps1
-   Start-ScheduledTask -TaskName SttWebApp
+   schtasks /run /tn SttWebApp
    ```
-3. Confirm it's running:
-   ```powershell
-   Get-ScheduledTask SttWebApp | Get-ScheduledTaskInfo   # LastTaskResult 0 / State Running
-   curl http://localhost:8792/api/health                  # {"ok":true}
+3. Confirm it's serving (run each on its own line — no trailing comments, or cmd
+   passes them to curl):
    ```
+   schtasks /query /tn SttWebApp
+   curl http://localhost:8792/api/health
+   ```
+   The task **Status** should read `Running`, and the curl should print
+   `{"ok":true}`.
 
 That's it — the app now starts on every boot/logon and restarts itself if it
 crashes. To undo: `... install-webapp-task.ps1 -Uninstall`. Full details in
