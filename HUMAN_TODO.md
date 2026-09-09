@@ -1,107 +1,70 @@
-# HUMAN_TODO — things only you can do
+# HUMAN_TODO — what's done, what's in YOUR court
 
-The tool is built and tested. These are the bits that need your hands (mostly the
-API key). Do them once and you're set.
+The running list of things in stt_misc that need **you specifically** — decisions
+only you can make, and human-only actions (admin shells, external-account setup).
+Agents do the building; anything they need from you lands here, and gets checked
+off when done. Done items collapse into the ledger over time; open items sit in
+"your court" with a full walk-through each.
 
-## 1. Get an AssemblyAI API key
+This is **not** a setup tutorial — fresh-clone install lives in `docs/SETUP.md`.
+Claude's build queue isn't here either.
 
-1. Sign up at **https://www.assemblyai.com/** (email or Google).
-2. Open the **Dashboard → API Keys** and copy your key.
-3. Billing is **pay-as-you-go** — no subscription. New accounts get **$50 free
-   credit**, which for your use (English, ~2 speakers) is a *lot* of audio
-   (transcription + diarization is roughly **$0.15–0.20 per hour** of audio).
-   When the free credit runs out, add a card and top up; you're only billed for
-   seconds of audio actually processed.
+---
 
-> Why AssemblyAI and not OpenAI: OpenAI's transcription models don't label
-> speakers. AssemblyAI does diarization in the same call, which is the whole
-> point here. If you ever want to switch providers, the seam is
-> `src/stt/transcribe.py` — everything else is provider-agnostic.
+## Part 1 — ✅ DONE (the ledger)
 
-## 2. Put the key where the tool can find it
+| When | What |
+|---|---|
+| 2026-07 | AssemblyAI account + API key created; key saved in `.env` (`ASSEMBLYAI_API_KEY`) |
+| 2026-07 | First real transcriptions run and corrected in the desktop editor |
+| 9/09 | Smart App Control turned off so the pip-generated `stt.exe` launcher stops being blocked by an Application Control policy |
+| 9/09 | **Phone web app made always-online** — `SttWebApp` scheduled task registered S4U from an admin shell; live at `https://stephen-desktop.tail796bf2.ts.net:11443/`, survives reboot (walk-through kept below) |
 
-Easiest — a `.env` file in the project root:
+---
 
-```bash
-cp .env.example .env
-# then edit .env and paste your key after ASSEMBLYAI_API_KEY=
-```
+## Part 2 — YOUR COURT
 
-Or set it as an environment variable (PowerShell, persists for new terminals):
+**Still open: nothing right now.** New human-only items (decisions, admin shells,
+external-account setup) will appear here as agents hit them.
 
-```powershell
-setx ASSEMBLYAI_API_KEY "your-key-here"
-```
+Optional / your call:
+- **Reboot once to watch the web app come back on its own.** The S4U task pattern
+  is already reboot-verified on this machine, so this is just to see it for
+  yourself — no action needed otherwise.
 
-`.env` is gitignored, so your key won't be committed.
+✅ done, kept for reference: the admin task registration (below).
 
-## 3. Install the tool (one time)
+### ✅ Register the always-online web-app task — admin shell *(done 9/09)*
 
-From the project root (`C:\Users\Stephen\Documents\GitHub\stt_misc`):
+**Why it's yours:** registering an **S4U** scheduled task (one that survives a
+reboot even when you're logged out) needs an **elevated** shell — unelevated
+fails with "Access is denied". This is the one human-only step that makes the
+phone web app permanent. Keep this for re-registration (fresh clone / new
+machine) or if the task ever gets removed.
 
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -e .
-```
-
-(If you'd rather not activate the venv each time, call `.venv\Scripts\stt.exe …`.)
-
-## 4. Smoke-test it on one real recording
-
-```powershell
-stt transcribe "C:\path\to\one-recording.m4a" "transcripts\one-recording.md" --review
-```
-
-This transcribes the file and immediately opens the correction editor in your
-browser. Confirm playback works and speaker labels look sane.
-
-## 5. Browser note (m4a playback)
-
-The editor plays audio in your browser. **Use Chrome or Edge** — both play `.m4a`
-(AAC) natively. Firefox sometimes won't play AAC. `.mp3`/`.wav` work everywhere.
-If audio ever won't load for a specific file, converting it to mp3 first is the
-fallback (I can add an auto-convert step later if it comes up).
-
-## 6. Make the phone web app survive reboots (admin PowerShell, one time)
-
-**Why this is yours:** the web app that serves your phone
-(`https://stephen-desktop.tail796bf2.ts.net:11443/`) is kept alive by a Windows
-Scheduled Task. Registering the *full* version — the one that comes back after a
-reboot even when you're logged out (LogonType S4U) — requires an **elevated**
-PowerShell; an unelevated shell fails with "Access is denied". Registering a task
-is something only you can authorize, so it can't be automated for you.
-
-Until you do this, the app only stays up while something is actively running it
-(a `python -m stt.webapp` you started, or a Claude session) — it will **not**
-restart itself or come back after a reboot. This step makes it permanent.
-(Registering the task needs elevation on this machine even for the logon-only
-`-Interactive` variant, so there's no non-admin shortcut — the admin shell below
-is the path.)
-
-**Steps:**
-1. Press **Win+X**, choose **Terminal (Admin)** (accept the UAC prompt).
-2. Run these (they work whether the admin terminal is PowerShell **or** Command
-   Prompt — `schtasks` is native to both, unlike the `*-ScheduledTask` cmdlets):
+1. **Win+X → Terminal (Admin)** (accept the UAC prompt).
+2. Run (works in Command Prompt **or** PowerShell — `schtasks` is native to both,
+   unlike the `*-ScheduledTask` cmdlets):
    ```
    cd C:\Users\Stephen\Documents\GitHub\stt_misc
    powershell -ExecutionPolicy Bypass -File scripts\windows\install-webapp-task.ps1
    schtasks /run /tn SttWebApp
    ```
-3. Confirm it's serving (run each on its own line — no trailing comments, or cmd
-   passes them to curl):
+3. Confirm (each on its own line — no trailing `#` comments, or cmd feeds them to
+   curl):
    ```
    schtasks /query /tn SttWebApp
    curl http://localhost:8792/api/health
    ```
-   The task **Status** should read `Running`, and the curl should print
-   `{"ok":true}`.
+   **Status** should read `Running`; the curl should print `{"ok":true}`.
 
-That's it — the app now starts on every boot/logon and restarts itself if it
-crashes. To undo: `... install-webapp-task.ps1 -Uninstall`. Full details in
+Undo: `... install-webapp-task.ps1 -Uninstall`. Full deploy details:
 `docs/DEPLOY_TAILNET.md`.
 
-## That's everything
+---
 
-Day-to-day usage is in **README.md**; tailnet/deploy details in
-`docs/DEPLOY_TAILNET.md`.
+## Reference
+
+- Fresh install / how to run — `docs/SETUP.md`
+- Put the web app on the tailnet / keep it online — `docs/DEPLOY_TAILNET.md`
+- Day-to-day usage — `README.md`

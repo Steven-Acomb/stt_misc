@@ -13,7 +13,8 @@ exactly right.
   so timing survives edits.
 - **Batch mode** for churning through a backlog (resumable, cost estimate).
 
-First-time setup (API key, install) is in **[HUMAN_TODO.md](HUMAN_TODO.md)**.
+First-time setup (install, API key) is in **[docs/SETUP.md](docs/SETUP.md)**;
+things that need you specifically over time live in **[HUMAN_TODO.md](HUMAN_TODO.md)**.
 
 ## The main workflow: get one transcript right
 
