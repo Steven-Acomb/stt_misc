@@ -21,8 +21,13 @@ async function apiSend(url, method, body) {
   return r.json();
 }
 async function errText(r) {
-  try { const j = await r.json(); return j.detail || j.error || r.statusText; }
-  catch { return r.statusText; }
+  try {
+    const j = await r.json();
+    let d = j.detail ?? j.error ?? r.statusText;
+    if (Array.isArray(d)) d = d.map((e) => (e && e.msg) ? e.msg : JSON.stringify(e)).join("; ");
+    else if (d && typeof d === "object") d = JSON.stringify(d);
+    return d;
+  } catch { return r.statusText; }
 }
 function encodePath(id) {
   return id.split("/").map(encodeURIComponent).join("/");

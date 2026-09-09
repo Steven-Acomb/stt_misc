@@ -39,6 +39,15 @@ _AUDIO_MIMETYPES = {
 jobs = JobManager()
 
 
+class JobRequest(BaseModel):
+    # Module-level (NOT nested in create_app): with `from __future__ import
+    # annotations` the annotation is a string FastAPI resolves against module
+    # globals — a nested class isn't there, and the body param silently becomes
+    # a query param (422 "field required").
+    path: str
+    speakers: int | None = 2
+
+
 class NoCacheStatic(StaticFiles):
     """Serve static assets with revalidation so JS/CSS edits aren't cached stale."""
 
@@ -209,10 +218,6 @@ def create_app() -> FastAPI:
         return {"path": str(dest), "name": dest.name, "bytes": size}
 
     # ---- transcription jobs ------------------------------------------
-    class JobRequest(BaseModel):
-        path: str
-        speakers: int | None = 2
-
     @app.post("/api/jobs")
     def create_job(req: JobRequest):
         p = Path(os.path.abspath(req.path))
