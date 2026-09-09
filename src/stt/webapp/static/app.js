@@ -90,11 +90,17 @@ async function viewTranscripts() {
   catch (e) { view.append(el("p", "empty", "Couldn't load: " + e.message)); return; }
   if (!items.length) { view.append(el("p", "empty", "No transcripts yet. Tap ＋ New to make one.")); return; }
   for (const it of items) {
-    const card = el("a", "card");
-    card.href = "#/edit/" + encodeURIComponent(it.id);
-    card.append(el("div", "title", it.name));
+    const card = el("div", "card");
+    const link = el("a", "title");
+    link.href = "#/edit/" + encodeURIComponent(it.id);
+    link.textContent = it.name;
+    card.append(link);
     const mins = it.duration_ms ? (it.duration_ms / 60000).toFixed(1) + " min · " : "";
     card.append(el("div", "meta", `${mins}${it.speaker_count} speaker(s)`));
+    const dl = el("a", "card-dl", "⬇ Download .md");
+    dl.href = "/api/download/" + encodePath(it.id) + "?fmt=md";
+    dl.setAttribute("download", "");
+    card.append(dl);
     view.append(card);
   }
 }
@@ -378,6 +384,20 @@ async function viewEditor(id) {
     [btnBack, btnPlay, btnFwd, scrubber, speed].forEach((e) => (e.disabled = true));
   }
   view.append(bar);
+
+  // Download buttons (save first if there are pending edits so the .md is current).
+  const tools = el("div", "editor-tools");
+  const mkDl = (label, fmt) => {
+    const a = el("a", "btn ghost small", label);
+    a.href = "/api/download/" + encodePath(id) + "?fmt=" + fmt;
+    a.setAttribute("download", "");
+    a.addEventListener("click", async (e) => {
+      if (dirty) { e.preventDefault(); await save(); window.location.assign(a.href); }
+    });
+    return a;
+  };
+  tools.append(mkDl("⬇ Download .md", "md"), mkDl("⬇ .json", "json"));
+  view.append(tools);
 
   const legend = el("div"); legend.id = "legend"; view.append(legend);
   const segWrap = el("div"); view.append(segWrap);

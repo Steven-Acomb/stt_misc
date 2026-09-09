@@ -191,6 +191,19 @@ def create_app() -> FastAPI:
         p.with_suffix(".md").write_text(to_screenplay(transcript), encoding="utf-8")
         return {"ok": True, "modified_at": transcript.modified_at}
 
+    # ---- download a transcript (md or json) --------------------------
+    @app.get("/api/download/{transcript_id:path}")
+    def download_transcript(transcript_id: str, fmt: str = "md"):
+        p = _resolve_transcript(transcript_id)  # the .json
+        if fmt == "json":
+            target, media = p, "application/json"
+        else:
+            target, media = p.with_suffix(".md"), "text/markdown; charset=utf-8"
+        if not target.is_file():
+            raise HTTPException(404, "file not found")
+        # filename= sets Content-Disposition: attachment, so phones offer "save".
+        return FileResponse(str(target), media_type=media, filename=target.name)
+
     # ---- upload from the phone ---------------------------------------
     @app.post("/api/upload")
     async def upload(file: UploadFile = File(...)):

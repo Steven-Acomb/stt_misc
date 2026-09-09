@@ -80,7 +80,11 @@ button { cursor: pointer; }
 }
 .card:active { background: var(--panel-2); }
 .card .title { font-weight: 600; margin-bottom: 3px; word-break: break-word; }
+.card a.title { color: var(--text); text-decoration: none; display: block; }
+.card a.title:active { color: var(--accent); }
 .card .meta { color: var(--muted); font-size: 0.85em; }
+.card-dl { display: inline-block; margin-top: 8px; color: var(--accent); text-decoration: none; font-size: 0.85em; font-weight: 600; }
+.card-dl:active { opacity: 0.6; }
 .section-title { color: var(--muted); font-size: 0.8em; text-transform: uppercase; letter-spacing: .05em; margin: 6px 2px 10px; }
 .empty { color: var(--muted); text-align: center; margin-top: 40px; }
 
@@ -105,6 +109,8 @@ button { cursor: pointer; }
 .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
 .btn:disabled { opacity: .5; }
 .btn.block { width: 100%; }
+.btn.small { padding: 8px 12px; font-size: 0.9em; text-decoration: none; }
+.editor-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 
 /* speaker-count sheet */
 .sheet-backdrop {
