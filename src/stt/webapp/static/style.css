@@ -16,13 +16,16 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-html, body { margin: 0; height: 100%; }
+html, body { margin: 0; }
 body {
   background: var(--bg);
   color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   line-height: 1.5;
-  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  min-height: 100vh;
+  /* Reserve space for the fixed bottom nav so the last card never hides behind
+     it. Body must NOT be height:100% or this padding won't reserve real space. */
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 20px);
 }
 
 button, select, textarea, input { font: inherit; color: inherit; }
