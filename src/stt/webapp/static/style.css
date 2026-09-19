@@ -184,3 +184,10 @@ button { cursor: pointer; }
 
 .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--muted); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -3px; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Accidental whole-page select-all (Ctrl+A with focus on a button, or a stray
+   drag) painted every word on the page with the selection color — it looked like
+   the page "turning white" and stuck until refresh. Only text fields select. */
+body { user-select: none; -webkit-user-select: none; }
+textarea, input { user-select: text; -webkit-user-select: text; }
+::selection { background: rgba(91, 140, 255, 0.35); }

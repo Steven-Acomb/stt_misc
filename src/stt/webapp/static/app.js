@@ -560,3 +560,12 @@ setInterval(healthProbe, 5000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) route(); });
 
 route();
+
+// Block whole-page select-all: Ctrl/Cmd+A outside a text field used to select
+// every word on the page (looked like the page turning white until refresh).
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+    const tag = (e.target && e.target.tagName) || "";
+    if (tag !== "TEXTAREA" && tag !== "INPUT") e.preventDefault();
+  }
+});
