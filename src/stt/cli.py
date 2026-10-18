@@ -97,6 +97,7 @@ def cmd_batch(args) -> int:
         concurrency=args.concurrency,
         overwrite=args.overwrite,
         dry_run=args.dry_run,
+        suffix=args.suffix,
     )
 
 
@@ -158,6 +159,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Re-transcribe files even if output already exists.")
     b.add_argument("--dry-run", action="store_true",
                    help="List what would be done and estimate cost; transcribe nothing.")
+    b.add_argument("--suffix", default="",
+                   help='Append to each output file stem, e.g. "_UNREVIEWED_MESSY_TRANSCRIPT".')
     b.set_defaults(func=cmd_batch)
 
     e = sub.add_parser("export", help="Regenerate the screenplay from an edited JSON.")

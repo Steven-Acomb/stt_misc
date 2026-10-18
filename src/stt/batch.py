@@ -39,9 +39,16 @@ def discover_audio(input_dir: Path) -> list[Path]:
     return files
 
 
-def output_paths_for(audio: Path, input_dir: Path, output_dir: Path) -> tuple[Path, Path]:
-    """Mirror the input tree under output_dir; return (screenplay_md, json)."""
-    rel = audio.relative_to(input_dir).with_suffix(".md")
+def output_paths_for(
+    audio: Path, input_dir: Path, output_dir: Path, suffix: str = ""
+) -> tuple[Path, Path]:
+    """Mirror the input tree under output_dir; return (screenplay_md, json).
+
+    suffix is appended to the file stem (e.g. "_UNREVIEWED_MESSY_TRANSCRIPT") so
+    the output name itself flags the transcript's state.
+    """
+    rel = audio.relative_to(input_dir)
+    rel = rel.with_name(rel.stem + suffix + ".md")
     md_path = output_dir / rel
     return md_path, sidecar_json_path(md_path)
 
@@ -66,6 +73,7 @@ def run_batch(
     concurrency: int = 3,
     overwrite: bool = False,
     dry_run: bool = False,
+    suffix: str = "",
 ) -> int:
     input_dir = Path(input_dir).resolve()
     output_dir = Path(output_dir).resolve()
@@ -81,7 +89,7 @@ def run_batch(
     pending: list[tuple[Path, Path, Path]] = []
     skipped = 0
     for audio in all_files:
-        md_path, json_path = output_paths_for(audio, input_dir, output_dir)
+        md_path, json_path = output_paths_for(audio, input_dir, output_dir, suffix)
         if not overwrite and md_path.exists() and json_path.exists():
             skipped += 1
             continue
