@@ -37,11 +37,23 @@ same app on your phone over Tailscale (below). Three tabs:
   Start. Transcription runs in the background.
 - **Jobs** — live status of running transcriptions; tap a finished one to review.
 - **Transcripts** — every transcript; tap to open the full editor, or
-  **⬇ Download .md** to save it to your device.
+  **⬇ Download .md** to save it to your device. Ones not yet checked line by
+  line carry an **unreviewed** badge.
 
 The editor has the same controls as the desktop one (playback, tap-a-timestamp
 to seek, fix text, reassign/rename speakers, merge/split, autosave), plus
-**Download .md / .json** buttons (the `.md` one saves your edits first).
+**Download .md / .json** buttons (the `.md` one saves your edits first) and a
+**Mark reviewed / Mark unreviewed** toggle.
+
+### The `_UNREVIEWED_MESSY_TRANSCRIPT` suffix
+
+A transcript whose file name ends in `_UNREVIEWED_MESSY_TRANSCRIPT` has not
+been fully corrected, so neither you nor another Claude session should trust
+every line of it. The web app's transcribe sheet names new transcripts this
+way by default (uncheck the box to skip it); **✓ Mark reviewed** in the editor
+renames the `.md` + `.json` pair to drop the suffix once you've been through it,
+and **⚠ Mark unreviewed** puts it back. On the CLI, `--suffix
+"_UNREVIEWED_MESSY_TRANSCRIPT"` on `stt transcribe` or `stt batch` does the same.
 
 - Binds `127.0.0.1:8792`, no login (the tailnet is the security boundary).
 - Env overrides: `STT_WEB_PORT`, `STT_WEB_HOST`, `STT_TRANSCRIPTS_DIR`,
@@ -136,9 +148,9 @@ stt export "transcripts\call.json"
 
 | Command | Purpose |
 |---|---|
-| `stt transcribe IN OUT` | Transcribe one file → screenplay + JSON. Add `--review` to open the editor. |
+| `stt transcribe IN OUT` | Transcribe one file → screenplay + JSON. Add `--review` to open the editor, `--suffix` to tag the name. |
 | `stt review PATH` | Open the editor for a `.md` or `.json`. `--audio PATH` if the audio moved. |
-| `stt batch INDIR OUTDIR` | Transcribe a folder (resumable). `--dry-run`, `--overwrite`, `--concurrency N`. |
+| `stt batch INDIR OUTDIR` | Transcribe a folder (resumable). `--dry-run`, `--overwrite`, `--concurrency N`, `--suffix`. |
 | `stt export PATH [OUT]` | Regenerate the screenplay from an edited JSON. |
 | `python -m stt.webapp` | Start the phone/web app on `127.0.0.1:8792` (see the Web app section). |
 

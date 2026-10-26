@@ -24,5 +24,9 @@ PORT = int(os.environ.get("STT_WEB_PORT", "8792"))
 
 STATIC_DIR = Path(__file__).parent / "static"
 
+# Appended to a transcript's file stem to flag "not fully reviewed" so Steve and
+# other Claude sessions know not to trust every line. Toggled from the editor.
+UNREVIEWED_SUFFIX = "_UNREVIEWED_MESSY_TRANSCRIPT"
+
 # How many transcription jobs run at once.
 MAX_WORKERS = int(os.environ.get("STT_WEB_WORKERS", "2"))

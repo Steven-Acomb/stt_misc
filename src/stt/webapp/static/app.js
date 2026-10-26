@@ -5,6 +5,11 @@
    Single-page, hash-routed, no framework. Views: transcripts / new / jobs / edit.
    ========================================================================== */
 
+// ---- constants -----------------------------------------------------------
+// Mirrors config.UNREVIEWED_SUFFIX on the server: a transcript whose file name
+// ends with this has not been fully checked line-by-line.
+const UNREVIEWED_SUFFIX = "_UNREVIEWED_MESSY_TRANSCRIPT";
+
 // ---- API helpers ---------------------------------------------------------
 async function apiGet(url) {
   const r = await fetch(url);
@@ -93,7 +98,8 @@ async function viewTranscripts() {
     const card = el("div", "card");
     const link = el("a", "title");
     link.href = "#/edit/" + encodeURIComponent(it.id);
-    link.textContent = it.name;
+    link.textContent = it.unreviewed ? it.name.slice(0, -UNREVIEWED_SUFFIX.length) : it.name;
+    if (it.unreviewed) link.append(" ", el("span", "badge unreviewed", "unreviewed"));
     card.append(link);
     const mins = it.duration_ms ? (it.duration_ms / 60000).toFixed(1) + " min · " : "";
     card.append(el("div", "meta", `${mins}${it.speaker_count} speaker(s)`));
@@ -250,10 +256,23 @@ function openSpeakerSheet(audioPath, audioName) {
   autoWrap.style.marginBottom = "16px";
   sheet.append(autoWrap);
 
+  // Default on: a brand-new transcript hasn't been reviewed. The editor has a
+  // "Mark reviewed" button that drops the suffix once it has.
+  let unreviewed = true;
+  const unrevWrap = el("label", "speed");
+  const unrevCb = document.createElement("input");
+  unrevCb.type = "checkbox"; unrevCb.checked = true;
+  unrevCb.onchange = () => { unreviewed = unrevCb.checked; };
+  unrevWrap.append(unrevCb, document.createTextNode(" Name it " + UNREVIEWED_SUFFIX));
+  unrevWrap.style.display = "block";
+  unrevWrap.style.textAlign = "center";
+  unrevWrap.style.marginBottom = "16px";
+  sheet.append(unrevWrap);
+
   const start = makeBtn("Start transcription", "block", async () => {
     start.disabled = true; start.textContent = "Starting…";
     try {
-      await apiSend("/api/jobs", "POST", { path: audioPath, speakers: auto ? 0 : count });
+      await apiSend("/api/jobs", "POST", { path: audioPath, speakers: auto ? 0 : count, unreviewed });
       close();
       location.hash = "#/jobs";
     } catch (e) { start.disabled = false; start.textContent = "Start transcription"; alert("Failed: " + e.message); }
@@ -397,6 +416,21 @@ async function viewEditor(id) {
     return a;
   };
   tools.append(mkDl("⬇ Download .md", "md"), mkDl("⬇ .json", "json"));
+
+  // Reviewed / unreviewed toggle: renames the file pair on disk and reopens the
+  // editor on the new id. Saves pending edits first so nothing is lost.
+  const isUnreviewed = id.replace(/\.json$/i, "").endsWith(UNREVIEWED_SUFFIX);
+  const markBtn = makeBtn(isUnreviewed ? "✓ Mark reviewed" : "⚠ Mark unreviewed",
+    "ghost small" + (isUnreviewed ? " mark-reviewed" : ""), async () => {
+    markBtn.disabled = true;
+    try {
+      if (dirty) await save();
+      if (dirty) throw new Error("save failed; not renaming");
+      const r = await apiSend("/api/mark/" + encodePath(id), "POST", { unreviewed: !isUnreviewed });
+      location.hash = "#/edit/" + encodeURIComponent(r.id);
+    } catch (e) { markBtn.disabled = false; alert("Couldn't rename: " + e.message); }
+  });
+  tools.append(markBtn);
   view.append(tools);
 
   const legend = el("div"); legend.id = "legend"; view.append(legend);

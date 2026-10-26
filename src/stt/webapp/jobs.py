@@ -42,11 +42,12 @@ def _unique_output(stem: str) -> tuple[Path, Path]:
 
 
 class Job:
-    def __init__(self, audio_path: str, speakers: int | None):
+    def __init__(self, audio_path: str, speakers: int | None, unreviewed: bool = False):
         self.id = uuid.uuid4().hex[:12]
         self.audio_path = audio_path
         self.audio_name = Path(audio_path).name
         self.speakers = speakers
+        self.unreviewed = unreviewed
         self.status = "queued"  # queued | running | done | error
         self.error = ""
         self.created_at = time.time()
@@ -64,6 +65,7 @@ class Job:
             "audio_name": self.audio_name,
             "audio_path": self.audio_path,
             "speakers": self.speakers,
+            "unreviewed": self.unreviewed,
             "status": self.status,
             "error": self.error,
             "created_at": self.created_at,
@@ -82,12 +84,12 @@ class JobManager:
         self._lock = threading.Lock()
         self._pool = ThreadPoolExecutor(max_workers=max_workers or config.MAX_WORKERS)
 
-    def submit(self, audio_path: str, speakers: int | None) -> Job:
-        job = Job(audio_path, speakers)
+    def submit(self, audio_path: str, speakers: int | None, unreviewed: bool = False) -> Job:
+        job = Job(audio_path, speakers, unreviewed)
         with self._lock:
             self._jobs[job.id] = job
             self._order.append(job.id)
-        log(f"job {job.id} queued: {job.audio_name} (speakers={speakers})")
+        log(f"job {job.id} queued: {job.audio_name} (speakers={speakers}, unreviewed={unreviewed})")
         self._pool.submit(self._run, job.id)
         return job
 
@@ -100,7 +102,8 @@ class JobManager:
             transcript = transcribe_file(
                 job.audio_path, speakers_expected=job.speakers
             )
-            md, js = _unique_output(_slug(job.audio_name))
+            stem = _slug(job.audio_name) + (config.UNREVIEWED_SUFFIX if job.unreviewed else "")
+            md, js = _unique_output(stem)
             transcript.save(js)
             md.parent.mkdir(parents=True, exist_ok=True)
             md.write_text(to_screenplay(transcript), encoding="utf-8")

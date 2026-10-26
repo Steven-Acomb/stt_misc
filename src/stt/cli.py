@@ -32,6 +32,8 @@ def cmd_transcribe(args) -> int:
     output = Path(args.output)
     if output.suffix.lower() not in {".md", ".txt"}:
         output = output.with_suffix(".md")
+    if args.suffix:
+        output = output.with_name(output.stem + args.suffix + output.suffix)
     json_path = sidecar_json_path(output)
 
     print(f"Transcribing {audio.name} … (this uploads to AssemblyAI and may take a bit)")
@@ -135,6 +137,8 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("input", help="Path to the audio file (.m4a/.mp3/.wav/…).")
     t.add_argument("output", help="Path to the screenplay output (.md).")
     _add_speaker_args(t)
+    t.add_argument("--suffix", default="",
+                   help='Append to the output file stem, e.g. "_UNREVIEWED_MESSY_TRANSCRIPT".')
     t.add_argument("--review", action="store_true",
                    help="Open the editor immediately after transcribing.")
     t.add_argument("--port", type=int, default=5005)

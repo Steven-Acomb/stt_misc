@@ -46,6 +46,11 @@ class JobRequest(BaseModel):
     # a query param (422 "field required").
     path: str
     speakers: int | None = 2
+    unreviewed: bool = False   # name the output *_UNREVIEWED_MESSY_TRANSCRIPT
+
+
+class MarkRequest(BaseModel):
+    unreviewed: bool
 
 
 class NoCacheStatic(StaticFiles):
@@ -153,6 +158,7 @@ def create_app() -> FastAPI:
             out.append({
                 "id": js.relative_to(base).as_posix(),
                 "name": js.stem,
+                "unreviewed": js.stem.endswith(config.UNREVIEWED_SUFFIX),
                 "audio_name": data.get("audio_filename", ""),
                 "duration_ms": data.get("duration_ms", 0),
                 "speaker_count": len(data.get("speaker_names", {})),
@@ -190,6 +196,32 @@ def create_app() -> FastAPI:
         transcript.save(p)
         p.with_suffix(".md").write_text(to_screenplay(transcript), encoding="utf-8")
         return {"ok": True, "modified_at": transcript.modified_at}
+
+    # ---- mark reviewed / unreviewed (renames the .md + .json pair) ---
+    @app.post("/api/mark/{transcript_id:path}")
+    def mark_transcript(transcript_id: str, req: MarkRequest):
+        p = _resolve_transcript(transcript_id)
+        if not p.is_file():
+            raise HTTPException(404, "transcript not found")
+        suf = config.UNREVIEWED_SUFFIX
+        stem = p.stem
+        has = stem.endswith(suf)
+        if has == req.unreviewed:
+            return {"id": transcript_id, "unreviewed": has, "renamed": False}
+        new_stem = stem + suf if req.unreviewed else stem[: -len(suf)]
+        new_js = p.with_name(new_stem + ".json")
+        new_md = new_js.with_suffix(".md")
+        if new_js.exists() or new_md.exists():
+            raise HTTPException(409, f"a transcript named {new_stem} already exists")
+        old_md = p.with_suffix(".md")
+        p.rename(new_js)
+        if old_md.is_file():
+            old_md.rename(new_md)
+        else:
+            new_md.write_text(to_screenplay(Transcript.load(new_js)), encoding="utf-8")
+        new_id = new_js.relative_to(config.TRANSCRIPTS_DIR.resolve()).as_posix()
+        log(f"marked {'unreviewed' if req.unreviewed else 'reviewed'}: {stem} -> {new_stem}")
+        return {"id": new_id, "unreviewed": req.unreviewed, "renamed": True}
 
     # ---- download a transcript (md or json) --------------------------
     @app.get("/api/download/{transcript_id:path}")
@@ -239,7 +271,7 @@ def create_app() -> FastAPI:
         if not p.is_file():
             raise HTTPException(404, f"audio file not found: {p}")
         speakers = req.speakers if (req.speakers and req.speakers > 0) else None
-        job = jobs.submit(str(p), speakers)
+        job = jobs.submit(str(p), speakers, unreviewed=req.unreviewed)
         return job.to_dict()
 
     @app.get("/api/jobs")

@@ -137,6 +137,8 @@ button { cursor: pointer; }
 .badge.running { background: var(--accent-soft); color: var(--accent); }
 .badge.done { background: #1e3a2a; color: var(--ok); }
 .badge.error { background: #3a1e1e; color: var(--danger); }
+.badge.unreviewed { background: var(--highlight); color: #e0c860; border: 1px solid var(--highlight-border); vertical-align: 2px; }
+.btn.mark-reviewed { color: var(--ok); border-color: #2e5a3c; }
 
 /* ---- editor ---- */
 .player-bar {
