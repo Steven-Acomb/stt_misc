@@ -467,6 +467,11 @@ async function viewEditor(id) {
 
   const tmpl = document.getElementById("segment-template");
   function renderSegments() {
+    // Rebuilding all turns momentarily empties the page, and the browser clamps
+    // the scroll position to 0 in that frame. Pin the container's height for
+    // the rebuild and put the scroll back where it was afterwards.
+    const keepY = window.scrollY;
+    segWrap.style.minHeight = segWrap.offsetHeight + "px";
     segWrap.innerHTML = "";
     doc.segments.forEach((seg, index) => {
       const node = tmpl.content.firstElementChild.cloneNode(true);
@@ -494,6 +499,12 @@ async function viewEditor(id) {
       segWrap.append(node);
       autoGrow(ta);
     });
+    segWrap.style.minHeight = "";
+    window.scrollTo(0, keepY);
+    if (playingId != null) {
+      const row = segWrap.querySelector(`.segment[data-id="${playingId}"]`);
+      if (row) row.classList.add("playing");
+    }
   }
 
   const idxById = (id2) => doc.segments.findIndex((s) => s.id === id2);
@@ -591,7 +602,14 @@ async function healthProbe() {
   catch { offlineEl.hidden = false; }
 }
 setInterval(healthProbe, 5000);
-document.addEventListener("visibilitychange", () => { if (!document.hidden) route(); });
+// Refresh list views when the app comes back to the foreground (job status
+// moves on while you're away). Never the editor: re-routing it would rebuild
+// the page, drop the scroll position and reset the audio player to 0:00.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  if ((location.hash || "").startsWith("#/edit/")) return;
+  route();
+});
 
 route();
 
