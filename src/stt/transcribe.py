@@ -30,11 +30,13 @@ def transcribe_file(
     model: str = DEFAULT_MODELS,
     speakers_expected: int | None = 2,
     language_code: str = "en",
+    keyterms: list[str] | None = None,
 ) -> Transcript:
     """Transcribe one audio file with speaker diarization.
 
     model: comma-separated AssemblyAI speech model preference list (tried in order).
     speakers_expected: hint for the diarizer. Pass None to let it auto-detect.
+    keyterms: names/jargon to bias recognition toward (AssemblyAI keyterms_prompt).
     """
     aai.settings.api_key = get_api_key()
     audio_path = Path(audio_path)
@@ -48,6 +50,8 @@ def transcribe_file(
     }
     if speakers_expected:
         config_kwargs["speakers_expected"] = speakers_expected
+    if keyterms:
+        config_kwargs["keyterms_prompt"] = [k for k in keyterms if k.strip()]
 
     config = aai.TranscriptionConfig(**config_kwargs)
     transcriber = aai.Transcriber(config=config)

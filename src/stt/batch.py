@@ -9,7 +9,10 @@ and writes a manifest CSV.
 from __future__ import annotations
 
 import csv
+import re
 import sys
+from collections.abc import Callable
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -31,25 +34,63 @@ def probe_duration_seconds(path: Path) -> float | None:
     return None
 
 
+def _is_junk(p: Path) -> bool:
+    """macOS zip droppings: __MACOSX folders and ._ resource-fork stubs."""
+    return p.name.startswith("._") or "__MACOSX" in p.parts
+
+
 def discover_audio(input_dir: Path) -> list[Path]:
     files = [
         p for p in sorted(input_dir.rglob("*"))
-        if p.is_file() and p.suffix.lower() in AUDIO_EXTENSIONS
+        if p.is_file() and p.suffix.lower() in AUDIO_EXTENSIONS and not _is_junk(p)
     ]
     return files
 
 
-def output_paths_for(
-    audio: Path, input_dir: Path, output_dir: Path, suffix: str = ""
-) -> tuple[Path, Path]:
-    """Mirror the input tree under output_dir; return (screenplay_md, json).
+# ---- ingest helpers: flat, date-prefixed names + speaker hint from the name ----
+_DATE_IN_NAME = re.compile(r"(?<!\d)(\d{1,2})-(\d{1,2})-(\d{2}|\d{4})(?!\d)")
+_TWO_PARTY = re.compile(r"\b(convo|call|chat|brief|meeting|1[_:]1|coffee|dinner|lunch)\b", re.I)
 
-    suffix is appended to the file stem (e.g. "_UNREVIEWED_MESSY_TRANSCRIPT") so
-    the output name itself flags the transcript's state.
+
+def date_prefix_for(audio: Path) -> str:
+    """YYYY-MM-DD from an MM-DD-YY in the file name, else "undated" (an mtime
+    would be the download/copy time, which lies about when it was recorded)."""
+    m = _DATE_IN_NAME.search(audio.stem)
+    if m:
+        mm, dd, yy = (int(x) for x in m.groups())
+        if yy < 100:
+            yy += 2000
+        try:
+            return datetime(yy, mm, dd).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+    return "undated"
+
+
+def flat_dated_stem(audio: Path) -> str:
+    return f"{date_prefix_for(audio)} {audio.stem}"
+
+
+def speakers_from_name(audio: Path, default: int | None = None) -> int | None:
+    """2 for something that reads like a one-on-one, else `default` (None = auto)."""
+    return 2 if _TWO_PARTY.search(audio.stem) else default
+
+
+def output_paths_for(
+    audio: Path, input_dir: Path, output_dir: Path, suffix: str = "",
+    stem_fn: Callable[[Path], str] | None = None,
+) -> tuple[Path, Path]:
+    """Return (screenplay_md, json) for an input file.
+
+    Default: mirror the input tree under output_dir. With stem_fn, write flat
+    into output_dir using stem_fn(audio) as the name. suffix is appended to the
+    stem (e.g. "_UNREVIEWED_MESSY_TRANSCRIPT") so the name flags its state.
     """
-    rel = audio.relative_to(input_dir)
-    rel = rel.with_name(rel.stem + suffix + ".md")
-    md_path = output_dir / rel
+    if stem_fn:
+        md_path = output_dir / (stem_fn(audio) + suffix + ".md")
+    else:
+        rel = audio.relative_to(input_dir)
+        md_path = output_dir / rel.with_name(rel.stem + suffix + ".md")
     return md_path, sidecar_json_path(md_path)
 
 
@@ -74,6 +115,9 @@ def run_batch(
     overwrite: bool = False,
     dry_run: bool = False,
     suffix: str = "",
+    stem_fn: Callable[[Path], str] | None = None,
+    speakers_fn: Callable[[Path], int | None] | None = None,
+    keyterms: list[str] | None = None,
 ) -> int:
     input_dir = Path(input_dir).resolve()
     output_dir = Path(output_dir).resolve()
@@ -89,7 +133,7 @@ def run_batch(
     pending: list[tuple[Path, Path, Path]] = []
     skipped = 0
     for audio in all_files:
-        md_path, json_path = output_paths_for(audio, input_dir, output_dir, suffix)
+        md_path, json_path = output_paths_for(audio, input_dir, output_dir, suffix, stem_fn)
         if not overwrite and md_path.exists() and json_path.exists():
             skipped += 1
             continue
@@ -101,7 +145,8 @@ def run_batch(
 
     if dry_run:
         for audio, md_path, _ in pending:
-            print(f"  would transcribe: {audio}  ->  {md_path}")
+            spk = speakers_fn(audio) if speakers_fn else speakers_expected
+            print(f"  would transcribe [{spk or 'auto'} spk]: {audio.name}  ->  {md_path.name}")
         return 0
 
     if not pending:
@@ -116,7 +161,9 @@ def run_batch(
         audio, md_path, json_path = item
         try:
             transcript = transcribe_file(
-                audio, model=model, speakers_expected=speakers_expected
+                audio, model=model,
+                speakers_expected=speakers_fn(audio) if speakers_fn else speakers_expected,
+                keyterms=keyterms,
             )
             json_path.parent.mkdir(parents=True, exist_ok=True)
             transcript.save(json_path)

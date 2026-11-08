@@ -3,6 +3,7 @@
     stt transcribe INPUT OUTPUT   Transcribe one audio file -> screenplay (+ JSON).
     stt review PATH               Open the web editor to correct a transcript.
     stt batch INDIR OUTDIR        Transcribe a whole folder (resumable).
+    stt ingest INDIR OUTDIR       Backlog dump -> flat, dated, unreviewed transcripts.
     stt export PATH [OUTPUT]      Regenerate the screenplay from an edited JSON.
 """
 
@@ -103,6 +104,29 @@ def cmd_batch(args) -> int:
     )
 
 
+UNREVIEWED_SUFFIX = "_UNREVIEWED_MESSY_TRANSCRIPT"
+
+
+def cmd_ingest(args) -> int:
+    """No-review bulk mode: every output is flat, date-prefixed, and suffixed
+    _UNREVIEWED_MESSY_TRANSCRIPT. One-on-ones (by name) get a 2-speaker hint,
+    everything else auto-detects. Skips macOS zip junk. Resumable like batch."""
+    from .batch import flat_dated_stem, run_batch, speakers_from_name
+
+    keyterms = [k.strip() for k in (args.keyterms or "").split(",") if k.strip()]
+    return run_batch(
+        args.input_dir, args.output_dir,
+        model=args.model,
+        concurrency=args.concurrency,
+        overwrite=args.overwrite,
+        dry_run=args.dry_run,
+        suffix=UNREVIEWED_SUFFIX,
+        stem_fn=flat_dated_stem,
+        speakers_fn=lambda a: speakers_from_name(a, default=None),
+        keyterms=keyterms or None,
+    )
+
+
 def cmd_export(args) -> int:
     json_path, default_out = _resolve_review_paths(Path(args.path))
     if json_path.suffix.lower() != ".json":
@@ -166,6 +190,17 @@ def build_parser() -> argparse.ArgumentParser:
     b.add_argument("--suffix", default="",
                    help='Append to each output file stem, e.g. "_UNREVIEWED_MESSY_TRANSCRIPT".')
     b.set_defaults(func=cmd_batch)
+
+    g = sub.add_parser("ingest", help="Bulk-transcribe a backlog dump: flat, dated, unreviewed.")
+    g.add_argument("input_dir", help="Folder of recordings (searched recursively; __MACOSX/._ junk skipped).")
+    g.add_argument("output_dir", help="Flat folder for 'YYYY-MM-DD <name>_UNREVIEWED_MESSY_TRANSCRIPT.md' files.")
+    g.add_argument("--model", default="universal-3-5-pro,universal-2")
+    g.add_argument("--keyterms", default="",
+                   help="Comma-separated names/jargon to bias recognition toward.")
+    g.add_argument("--concurrency", type=int, default=16)
+    g.add_argument("--overwrite", action="store_true")
+    g.add_argument("--dry-run", action="store_true")
+    g.set_defaults(func=cmd_ingest)
 
     e = sub.add_parser("export", help="Regenerate the screenplay from an edited JSON.")
     e.add_argument("path", help="The .json (or its .md sibling) to export from.")
