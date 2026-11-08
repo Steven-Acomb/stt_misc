@@ -124,6 +124,25 @@ stt batch "recordings" "transcripts" --concurrency 3
 
 Then correct any individual result with `stt review "transcripts\<name>.md"`.
 
+### Ingest mode (backlog dumps you won't review)
+
+For a pile of recordings you need transcribed now and will read later, as-is:
+
+```powershell
+stt ingest "C:\Downloads\some_dump" "transcripts\some_dump" --concurrency 38 `
+  --keyterms "Sphere Semi,Mitch Nahmias,16nm"
+```
+
+Compared to `batch`, `ingest` writes a **flat** folder of
+`YYYY-MM-DD <original name>_UNREVIEWED_MESSY_TRANSCRIPT.md` files (date pulled
+from an `MM-DD-YY` in the file name, else `undated`), always adds the unreviewed
+suffix, hints **2 speakers** for names that read like a one-on-one
+("Convo w.", "Call with", "Brief", "1:1", …) and **auto-detects** for everything
+else (ambient "Workday" recordings), skips macOS zip junk (`__MACOSX`, `._*`),
+and passes `--keyterms` to AssemblyAI so names and jargon come out spelled
+right. Processing time is per file, so a high `--concurrency` finishes the
+whole dump in roughly the time of the longest recording. Resumable like batch.
+
 ## Output files
 
 For `out.md` you get two files:
@@ -151,6 +170,7 @@ stt export "transcripts\call.json"
 | `stt transcribe IN OUT` | Transcribe one file → screenplay + JSON. Add `--review` to open the editor, `--suffix` to tag the name. |
 | `stt review PATH` | Open the editor for a `.md` or `.json`. `--audio PATH` if the audio moved. |
 | `stt batch INDIR OUTDIR` | Transcribe a folder (resumable). `--dry-run`, `--overwrite`, `--concurrency N`, `--suffix`. |
+| `stt ingest INDIR OUTDIR` | Backlog dump → flat, dated, unreviewed transcripts. `--keyterms`, `--concurrency N`, `--dry-run`. |
 | `stt export PATH [OUT]` | Regenerate the screenplay from an edited JSON. |
 | `python -m stt.webapp` | Start the phone/web app on `127.0.0.1:8792` (see the Web app section). |
 
