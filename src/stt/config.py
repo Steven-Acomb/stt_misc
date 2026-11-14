@@ -14,7 +14,9 @@ API_KEY_ENV = "ASSEMBLYAI_API_KEY"
 
 # Audio extensions we recognize for batch discovery. AssemblyAI accepts far more;
 # this list just controls what `stt batch` globs for.
-AUDIO_EXTENSIONS = {".m4a", ".mp3", ".wav", ".aac", ".flac", ".ogg", ".mp4", ".webm", ".m4b"}
+# .qta = QuickTime audio, what newer iPhone Voice Memos export (AAC + an Apple
+# spatial track in a QuickTime container); browsers play it as audio/mp4.
+AUDIO_EXTENSIONS = {".m4a", ".mp3", ".wav", ".aac", ".flac", ".ogg", ".mp4", ".webm", ".m4b", ".qta", ".mov"}
 
 # Approximate USD/hour for cost estimates. AssemblyAI bills per second; these are
 # rough figures for the "best" (Universal) model plus speaker diarization, used

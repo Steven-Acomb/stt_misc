@@ -32,6 +32,7 @@ TRANSCRIPT_EXTS = {".md", ".json"}
 
 _AUDIO_MIMETYPES = {
     ".m4a": "audio/mp4", ".m4b": "audio/mp4", ".mp4": "audio/mp4",
+    ".qta": "audio/mp4", ".mov": "audio/mp4",
     ".aac": "audio/aac", ".mp3": "audio/mpeg", ".wav": "audio/wav",
     ".flac": "audio/flac", ".ogg": "audio/ogg", ".webm": "audio/webm",
 }

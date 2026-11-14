@@ -565,6 +565,12 @@ async function viewEditor(id) {
     timeReadout.textContent = `${fmtMs(player.currentTime * 1000)} / ${fmtMs(d * 1000)}`;
     if (d > 0) scrubber.value = String(Math.round((player.currentTime / d) * 1000));
   });
+  player.addEventListener("error", () => {
+    const code = player.error && player.error.code;
+    const why = code === 4 ? "format not supported or server refused it" : "load error " + code;
+    bar.append(el("div", "meta", `⚠ audio failed to load (${why}): ${doc.audio_filename || ""}`));
+    setStatus("no audio", "dirty");
+  });
   player.addEventListener("play", () => (btnPlay.textContent = "Pause"));
   player.addEventListener("pause", () => (btnPlay.textContent = "Play"));
   btnPlay.onclick = toggle; btnBack.onclick = () => nudge(-5); btnFwd.onclick = () => nudge(5);
