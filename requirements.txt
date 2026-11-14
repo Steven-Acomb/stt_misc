@@ -5,3 +5,4 @@ uvicorn>=0.29
 python-multipart>=0.0.9
 mutagen>=1.47
 python-dotenv>=1.0
+pymobiledevice3  # scripts/pull_voice_memos.py (Voice Memos off a USB iPhone/iPad)
