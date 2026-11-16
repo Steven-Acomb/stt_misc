@@ -156,6 +156,7 @@ def run_batch(
     keyterms: list[str] | None = None,
     subdir_fn: Callable[[Path], str] | None = None,
     files: list[Path] | None = None,
+    manifest_name: str = "manifest.csv",
 ) -> int:
     """input_dir: folder to search. If `files` is given (explicit list), it is
     used instead of searching and input_dir only matters for tree-mirroring
@@ -200,7 +201,7 @@ def run_batch(
         print("Nothing to do.")
         return 0
 
-    manifest_path = output_dir / "manifest.csv"
+    manifest_path = output_dir / manifest_name
     output_dir.mkdir(parents=True, exist_ok=True)
     rows: list[dict] = []
 

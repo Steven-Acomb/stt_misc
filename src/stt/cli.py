@@ -115,7 +115,7 @@ def cmd_ingest(args) -> int:
                         speakers_from_name, week_folder_for)
 
     keyterms = [k.strip() for k in (args.keyterms or "").split(",") if k.strip()]
-    src = Path(args.input)
+    src = src_list = Path(args.input)
     files = None
     if src.is_file() and src.suffix.lower() == ".txt":
         files = read_file_list(src)
@@ -132,6 +132,7 @@ def cmd_ingest(args) -> int:
         keyterms=keyterms or None,
         subdir_fn=week_folder_for if args.by_week else None,
         files=files,
+        manifest_name=f"manifest_{src_list.stem}.csv" if files is not None else "manifest.csv",
     )
 
 
