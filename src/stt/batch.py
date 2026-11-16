@@ -12,7 +12,7 @@ import csv
 import re
 import sys
 from collections.abc import Callable
-from datetime import datetime
+from datetime import date, datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -71,6 +71,39 @@ def flat_dated_stem(audio: Path) -> str:
     return f"{date_prefix_for(audio)} {audio.stem}"
 
 
+# Steve's Sphere week numbering: Monday-start weeks, week 4 = Mon 2025-04-14
+# ("W004 is Mon 2025-04-14 through Sun 04-20 and that pattern continues").
+# Anything before week 1 (Mon 2025-03-24) is week 0.
+WEEK_4_MONDAY = date(2025, 4, 14)
+
+
+def week_folder_for(audio: Path) -> str:
+    prefix = date_prefix_for(audio)
+    if prefix == "undated":
+        return "week_undated"
+    d = date.fromisoformat(prefix)
+    n = 4 + (d - WEEK_4_MONDAY).days // 7
+    return f"week_{max(0, n)}"
+
+
+def read_file_list(list_path: Path) -> list[Path]:
+    """One audio path per line (absolute); blank lines and # comments ignored.
+    Missing files and non-audio paths are reported and skipped."""
+    files: list[Path] = []
+    for raw in list_path.read_text(encoding="utf-8-sig").splitlines():
+        line = raw.strip().strip('"')
+        if not line or line.startswith("#"):
+            continue
+        p = Path(line)
+        if not p.is_file():
+            print(f"  skip (not found): {line}", file=sys.stderr)
+        elif p.suffix.lower() not in AUDIO_EXTENSIONS:
+            print(f"  skip (not audio): {line}", file=sys.stderr)
+        else:
+            files.append(p)
+    return files
+
+
 def speakers_from_name(audio: Path, default: int | None = None) -> int | None:
     """2 for something that reads like a one-on-one, else `default` (None = auto)."""
     return 2 if _TWO_PARTY.search(audio.stem) else default
@@ -79,15 +112,18 @@ def speakers_from_name(audio: Path, default: int | None = None) -> int | None:
 def output_paths_for(
     audio: Path, input_dir: Path, output_dir: Path, suffix: str = "",
     stem_fn: Callable[[Path], str] | None = None,
+    subdir_fn: Callable[[Path], str] | None = None,
 ) -> tuple[Path, Path]:
     """Return (screenplay_md, json) for an input file.
 
     Default: mirror the input tree under output_dir. With stem_fn, write flat
-    into output_dir using stem_fn(audio) as the name. suffix is appended to the
-    stem (e.g. "_UNREVIEWED_MESSY_TRANSCRIPT") so the name flags its state.
+    into output_dir using stem_fn(audio) as the name; subdir_fn adds a folder
+    level under output_dir (e.g. week_N). suffix is appended to the stem
+    (e.g. "_UNREVIEWED_MESSY_TRANSCRIPT") so the name flags its state.
     """
     if stem_fn:
-        md_path = output_dir / (stem_fn(audio) + suffix + ".md")
+        base = output_dir / subdir_fn(audio) if subdir_fn else output_dir
+        md_path = base / (stem_fn(audio) + suffix + ".md")
     else:
         rel = audio.relative_to(input_dir)
         md_path = output_dir / rel.with_name(rel.stem + suffix + ".md")
@@ -118,22 +154,32 @@ def run_batch(
     stem_fn: Callable[[Path], str] | None = None,
     speakers_fn: Callable[[Path], int | None] | None = None,
     keyterms: list[str] | None = None,
+    subdir_fn: Callable[[Path], str] | None = None,
+    files: list[Path] | None = None,
 ) -> int:
+    """input_dir: folder to search. If `files` is given (explicit list), it is
+    used instead of searching and input_dir only matters for tree-mirroring
+    (which flat/stem_fn mode doesn't use)."""
     input_dir = Path(input_dir).resolve()
     output_dir = Path(output_dir).resolve()
-    if not input_dir.is_dir():
-        print(f"Input directory not found: {input_dir}", file=sys.stderr)
-        return 1
-
-    all_files = discover_audio(input_dir)
-    if not all_files:
-        print(f"No audio files found under {input_dir}")
-        return 0
+    if files is not None:
+        all_files = [Path(f).resolve() for f in files]
+        if not all_files:
+            print("File list is empty (after skipping missing/non-audio lines).")
+            return 1
+    else:
+        if not input_dir.is_dir():
+            print(f"Input directory not found: {input_dir}", file=sys.stderr)
+            return 1
+        all_files = discover_audio(input_dir)
+        if not all_files:
+            print(f"No audio files found under {input_dir}")
+            return 0
 
     pending: list[tuple[Path, Path, Path]] = []
     skipped = 0
     for audio in all_files:
-        md_path, json_path = output_paths_for(audio, input_dir, output_dir, suffix, stem_fn)
+        md_path, json_path = output_paths_for(audio, input_dir, output_dir, suffix, stem_fn, subdir_fn)
         if not overwrite and md_path.exists() and json_path.exists():
             skipped += 1
             continue
@@ -146,7 +192,8 @@ def run_batch(
     if dry_run:
         for audio, md_path, _ in pending:
             spk = speakers_fn(audio) if speakers_fn else speakers_expected
-            print(f"  would transcribe [{spk or 'auto'} spk]: {audio.name}  ->  {md_path.name}")
+            rel = md_path.relative_to(output_dir)
+            print(f"  would transcribe [{spk or 'auto'} spk]: {audio.name}  ->  {rel}")
         return 0
 
     if not pending:

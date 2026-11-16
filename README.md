@@ -143,6 +143,16 @@ and passes `--keyterms` to AssemblyAI so names and jargon come out spelled
 right. Processing time is per file, so a high `--concurrency` finishes the
 whole dump in roughly the time of the longest recording. Resumable like batch.
 
+The input can also be a **`.txt` list** of absolute audio paths (one per line,
+`#` comments allowed; missing lines are reported and skipped), and `--by-week`
+routes each output into `week_N/` by the date in its name, using the Sphere
+week numbering (week 4 = Mon 2025-04-14; earlier dates → `week_0`; no date →
+`week_undated`):
+
+```powershell
+stt ingest wave_07.txt "transcripts\sphere_week_by_week" --by-week --concurrency 38 --keyterms "…"
+```
+
 ## Output files
 
 For `out.md` you get two files:

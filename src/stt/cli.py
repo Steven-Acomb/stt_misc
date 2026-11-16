@@ -111,11 +111,17 @@ def cmd_ingest(args) -> int:
     """No-review bulk mode: every output is flat, date-prefixed, and suffixed
     _UNREVIEWED_MESSY_TRANSCRIPT. One-on-ones (by name) get a 2-speaker hint,
     everything else auto-detects. Skips macOS zip junk. Resumable like batch."""
-    from .batch import flat_dated_stem, run_batch, speakers_from_name
+    from .batch import (flat_dated_stem, read_file_list, run_batch,
+                        speakers_from_name, week_folder_for)
 
     keyterms = [k.strip() for k in (args.keyterms or "").split(",") if k.strip()]
+    src = Path(args.input)
+    files = None
+    if src.is_file() and src.suffix.lower() == ".txt":
+        files = read_file_list(src)
+        src = src.parent
     return run_batch(
-        args.input_dir, args.output_dir,
+        src, args.output_dir,
         model=args.model,
         concurrency=args.concurrency,
         overwrite=args.overwrite,
@@ -124,6 +130,8 @@ def cmd_ingest(args) -> int:
         stem_fn=flat_dated_stem,
         speakers_fn=lambda a: speakers_from_name(a, default=None),
         keyterms=keyterms or None,
+        subdir_fn=week_folder_for if args.by_week else None,
+        files=files,
     )
 
 
@@ -192,8 +200,12 @@ def build_parser() -> argparse.ArgumentParser:
     b.set_defaults(func=cmd_batch)
 
     g = sub.add_parser("ingest", help="Bulk-transcribe a backlog dump: flat, dated, unreviewed.")
-    g.add_argument("input_dir", help="Folder of recordings (searched recursively; __MACOSX/._ junk skipped).")
-    g.add_argument("output_dir", help="Flat folder for 'YYYY-MM-DD <name>_UNREVIEWED_MESSY_TRANSCRIPT.md' files.")
+    g.add_argument("input", help="Folder of recordings (searched recursively; __MACOSX/._ junk skipped), "
+                                 "or a .txt file listing audio paths one per line.")
+    g.add_argument("output_dir", help="Folder for 'YYYY-MM-DD <name>_UNREVIEWED_MESSY_TRANSCRIPT.md' files.")
+    g.add_argument("--by-week", action="store_true",
+                   help="Route each file into week_N/ under output_dir by the date in its name "
+                        "(week 4 = Mon 2025-04-14; earlier = week_0; no date = week_undated).")
     g.add_argument("--model", default="universal-3-5-pro,universal-2")
     g.add_argument("--keyterms", default="",
                    help="Comma-separated names/jargon to bias recognition toward.")
