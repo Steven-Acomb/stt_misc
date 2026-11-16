@@ -99,6 +99,8 @@ def read_file_list(list_path: Path) -> list[Path]:
             print(f"  skip (not found): {line}", file=sys.stderr)
         elif p.suffix.lower() not in AUDIO_EXTENSIONS:
             print(f"  skip (not audio): {line}", file=sys.stderr)
+        elif p.resolve() in {f.resolve() for f in files}:
+            print(f"  skip (duplicate line): {line}", file=sys.stderr)
         else:
             files.append(p)
     return files
