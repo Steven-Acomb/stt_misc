@@ -34,3 +34,5 @@ foreach ($f in $folders | Sort-Object { [int]($_.Name -replace 'week_', '') }) {
   $total += $n
 }
 "done: $total .md files across $(@($folders).Count) week folder(s) -> $Dest"
+# robocopy returns 1 for "files copied"; do not let that read as a failure
+exit 0
