@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -38,6 +39,63 @@ _AUDIO_MIMETYPES = {
 }
 
 jobs = JobManager()
+
+# Transcript-list metadata cache. Each transcript JSON carries full word timings
+# (the corpus passed 400 MB / 500 files), so parsing every file per list call
+# took seconds warm and far longer cold, leaving the Transcripts tab blank.
+# Key: json path -> (mtime_ns, size, entry). Only new/changed files are parsed.
+_meta_cache: dict[str, tuple[int, int, dict]] = {}
+_meta_lock = threading.Lock()
+
+
+def _transcript_entry(js: Path, base: Path) -> dict | None:
+    try:
+        st = js.stat()
+    except OSError:
+        return None
+    key = str(js)
+    with _meta_lock:
+        hit = _meta_cache.get(key)
+    if hit and hit[0] == st.st_mtime_ns and hit[1] == st.st_size:
+        return hit[2]
+    try:
+        data = json.loads(js.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(data, dict) or "segments" not in data:
+        return None  # not a transcript json
+    entry = {
+        "id": js.relative_to(base).as_posix(),
+        "name": js.stem,
+        "unreviewed": js.stem.endswith(config.UNREVIEWED_SUFFIX),
+        "audio_name": data.get("audio_filename", ""),
+        "duration_ms": data.get("duration_ms", 0),
+        "speaker_count": len(data.get("speaker_names", {})),
+        "modified_at": data.get("modified_at", ""),
+        "mtime": st.st_mtime,
+    }
+    with _meta_lock:
+        _meta_cache[key] = (st.st_mtime_ns, st.st_size, entry)
+    return entry
+
+
+def _list_transcripts() -> list[dict]:
+    base = config.TRANSCRIPTS_DIR
+    files = sorted(base.rglob("*.json"), key=lambda f: f.stat().st_mtime, reverse=True)
+    out = []
+    for js in files:
+        e = _transcript_entry(js, base)
+        if e:
+            out.append(e)
+    return out
+
+
+def _warm_cache() -> None:
+    try:
+        n = len(_list_transcripts())
+        log(f"transcript metadata cache warmed: {n} entries")
+    except Exception as exc:  # noqa: BLE001
+        log(f"cache warm failed: {exc}")
 
 
 class JobRequest(BaseModel):
@@ -147,26 +205,7 @@ def create_app() -> FastAPI:
     # ---- transcripts list --------------------------------------------
     @app.get("/api/transcripts")
     def list_transcripts():
-        base = config.TRANSCRIPTS_DIR
-        out = []
-        for js in sorted(base.rglob("*.json"), key=lambda f: f.stat().st_mtime, reverse=True):
-            try:
-                data = json.loads(js.read_text(encoding="utf-8"))
-            except Exception:
-                continue
-            if "segments" not in data:
-                continue  # not a transcript json
-            out.append({
-                "id": js.relative_to(base).as_posix(),
-                "name": js.stem,
-                "unreviewed": js.stem.endswith(config.UNREVIEWED_SUFFIX),
-                "audio_name": data.get("audio_filename", ""),
-                "duration_ms": data.get("duration_ms", 0),
-                "speaker_count": len(data.get("speaker_names", {})),
-                "modified_at": data.get("modified_at", ""),
-                "mtime": js.stat().st_mtime,
-            })
-        return out
+        return _list_transcripts()
 
     # ---- one transcript (load / save) --------------------------------
     @app.get("/api/transcript/{transcript_id:path}")
@@ -291,6 +330,7 @@ def create_app() -> FastAPI:
         app.mount("/", NoCacheStatic(directory=str(config.STATIC_DIR), html=True), name="static")
 
     log(f"app created (transcripts={config.TRANSCRIPTS_DIR})")
+    threading.Thread(target=_warm_cache, name="meta-warm", daemon=True).start()
     return app
 
 

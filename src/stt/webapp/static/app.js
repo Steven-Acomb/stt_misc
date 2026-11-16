@@ -90,9 +90,12 @@ window.addEventListener("hashchange", route);
 async function viewTranscripts() {
   setCrumb("Transcripts");
   view.append(el("div", "section-title", "Your transcripts"));
+  const loading = el("p", "empty"); loading.append(el("span", "spinner"), document.createTextNode(" Loading transcripts…"));
+  view.append(loading); setStatus("loading…", "saving");
   let items;
   try { items = await apiGet("/api/transcripts"); }
-  catch (e) { view.append(el("p", "empty", "Couldn't load: " + e.message)); return; }
+  catch (e) { loading.remove(); setStatus(""); view.append(el("p", "empty", "Couldn't load: " + e.message)); return; }
+  loading.remove(); setStatus("");
   if (!items.length) { view.append(el("p", "empty", "No transcripts yet. Tap ＋ New to make one.")); return; }
   for (const it of items) {
     const card = el("div", "card");
