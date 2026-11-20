@@ -19,6 +19,10 @@ UPLOAD_DIR = Path(os.environ.get("STT_UPLOAD_DIR", str(REPO_ROOT / "uploads")))
 # is what lets the scheduled task restart cleanly. See docs/DEPLOY_TAILNET.md.
 LOG_FILE = Path(os.environ.get("STT_WEB_LOG", str(REPO_ROOT / "logs" / "webapp.log")))
 
+# Job queue state, so a server restart (reboot, task restart, crash) does not
+# lose queued/running phone transcriptions: unfinished jobs are re-run on start.
+JOBS_FILE = Path(os.environ.get("STT_WEB_JOBS", str(REPO_ROOT / "logs" / "jobs.json")))
+
 HOST = os.environ.get("STT_WEB_HOST", "127.0.0.1")
 PORT = int(os.environ.get("STT_WEB_PORT", "8792"))
 
