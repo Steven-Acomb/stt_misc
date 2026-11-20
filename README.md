@@ -58,8 +58,8 @@ and **⚠ Mark unreviewed** puts it back. On the CLI, `--suffix
 - Binds `127.0.0.1:8792`, no login (the tailnet is the security boundary).
 - Env overrides: `STT_WEB_PORT`, `STT_WEB_HOST`, `STT_TRANSCRIPTS_DIR`,
   `STT_UPLOAD_DIR`, `STT_WEB_WORKERS`. Writes its own log to `logs/webapp.log`.
-- Transcription jobs live in memory — restarting the server drops in-flight
-  jobs (finished transcripts are already on disk). Kick a dropped one off again.
+- Transcription jobs are mirrored to `logs/jobs.json`; if the server restarts
+  (reboot, task restart, crash) any queued or running job is re-run on startup.
 
 ### On your phone (Tailscale)
 
