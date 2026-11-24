@@ -4,15 +4,26 @@ Build queue for agents. What needs Steve specifically lives in `HUMAN_TODO.md`.
 
 ## Editor
 
-- [ ] **Fix time division when splitting turns.** Today `Split` divides the
-  *text* at the caret but the *time* at the playhead, or at the segment's
-  midpoint when the playhead isn't inside the segment
-  (`onSplit` in `src/stt/webapp/static/app.js`, same logic in
-  `src/stt/review/static/app.js`). So a caret split with the audio elsewhere
-  gives both halves wrong timestamps and misassigns the word timings. Derive
-  the split time from the word timings instead: count the words before the
-  caret and use that word's `start` (fall back to the playhead only if the
-  segment has no word timings). Both editors.
+- [ ] **Fix time division when splitting turns.** Today `Split` sets the
+  boundary time from the playhead, or the segment midpoint when the playhead
+  isn't inside the segment (`onSplit` in `src/stt/webapp/static/app.js`, same
+  in `src/stt/review/static/app.js`). Neither carries the intended moment:
+  Steve does not pause the audio or park the playhead at the boundary when he
+  splits, so there is no app state that holds the right time, and the result
+  is wrong timestamps on both halves. Steve's fix, two parts that only work
+  together:
+  1. **A way to set a turn's boundary time by hand in the app.** There is
+     none today, which is an oversight regardless of the split bug. Must not
+     require scrubbing hours of audio to find the moment.
+  2. **Default the split time proportionally**: the boundary lands between the
+     segment's existing start and end in proportion to how far into the text
+     the split falls.
+  Alternative default, Claude's suggestion (2026-11-24): the segment already
+  has per-word timestamps, so map the text split point to the Nth word and use
+  that word's `start`. Same idea as (2) but proportional in words, and exact
+  where the text is unedited; fall back to the linear proportion when the
+  edited text no longer lines up with the word list or a segment has no word
+  timings. (1) is needed either way.
 
 ## Speaker attribution (from the 2026-11-08 backlog discussion)
 
