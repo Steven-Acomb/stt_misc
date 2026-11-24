@@ -37,11 +37,17 @@ cast. Options discussed, roughly in order of value per effort:
   21-minute "turn"), the words are right but one label spans both people. An
   LLM pass that splits on question/answer and address cues could recover
   turns approximately. Speculative; mark results as unreviewed.
-- [ ] **Voiceprint ID (parked).** Enrol Steve's voice, embed each diarized
-  segment (pyannote), cluster against the AssemblyAI labels, and label Steve
-  across every file. Judged not worth it on 2026-11-08: about a day of work, a
-  local model over hundreds of hours, and it only ever reliably identifies
-  Steve. Revisit if the chronicle project needs "who is Steve" at scale.
+- [ ] **Voiceprint ID (Steve wants to try it; not scheduled).** Two stages:
+  1. Enrol Steve's voice; for every transcript, embed a few seconds of each
+     AssemblyAI speaker cluster (pyannote speaker embeddings; no re-diarizing),
+     compare, and name the matching label "Steve" in `speaker_names`.
+  2. Bootstrap the rest: in a one-on-one, the non-Steve voice is the person in
+     the title ("Convo w. Mitch" → Mitch), so each labelled one-on-one becomes
+     an enrolment sample. The library (Mitch, Loic, Alex Hu, Stelios, …) then
+     labels the ambient Workday recordings too.
+  Sized 2026-11-08 at about a day of glue. Compute is not a concern: the
+  desktop has an RTX 4070 SUPER (12 GB); PyTorch is not in the venv yet.
+  Parked that day only because the week-by-week transcripts were needed ASAP.
 - [ ] **File metadata is a dead end.** Checked 2026-11-08: the voice memos
   carry only an Apple `voice-memo-uuid` tag. Nothing identifies participants
   beyond the title and date. Recorded here so nobody re-checks.
